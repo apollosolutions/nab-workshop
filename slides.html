@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apollo for NAB · From Proposal to Production</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --dark: #15252D;
+    --orange: #E75E15;
+    --orange-light: #FFC3A6;
+    --teal: #1E6A7A;
+    --peach: #FDEEE6;
+    --muted: #8A8A8A;
+    --muted-dark: #CFD7D6;
+    --neutral-900: #2B2B2B;
+    --neutral-700: #666666;
+    --neutral-400: #D1D1D1;
+    --neutral-200: #EFEFEF;
+    --neutral-100: #F6F6F6;
+    --light: #FFFFFF;
+    --font: 'Inter', system-ui, -apple-system, sans-serif;
+    --mono: 'Menlo', 'Monaco', 'Consolas', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; font-family: var(--font); }
+  body { background: var(--dark); color: var(--light); }
+
+  .deck { width: 100vw; height: 100vh; position: relative; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: none;
+    padding: 96px 96px 88px;
+    background: var(--light);
+    color: var(--neutral-900);
+    flex-direction: column;
+    justify-content: center;
+  }
+  .slide.active { display: flex; }
+  .slide.dark { background: var(--dark); color: var(--light); }
+  /* Content wrapper that vertically centers everything together */
+  .slide > .stack {
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
+    overflow: auto;
+  }
+
+  /* Eyebrow + title */
+  .eyebrow {
+    font-size: 12pt;
+    font-weight: 400;
+    color: var(--orange);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+  }
+  .title-h {
+    font-size: 36pt;
+    font-weight: 700;
+    color: inherit;
+    line-height: 1.1;
+    margin-bottom: 32px;
+    max-width: 90%;
+  }
+  .lede {
+    font-size: 18pt;
+    font-weight: 400;
+    line-height: 1.5;
+    color: inherit;
+    max-width: 80%;
+    margin-bottom: 24px;
+  }
+  .slide.dark .lede { color: var(--light); }
+
+  /* Title slide */
+  .slide.title {
+    background: var(--dark);
+    color: var(--light);
+    justify-content: flex-end;
+    align-items: flex-start;
+  }
+  .slide.title .wordmark {
+    position: absolute;
+    top: 64px;
+    left: 96px;
+    height: 28px;
+    color: var(--light);
+  }
+  .slide.title .date {
+    position: absolute;
+    top: 108px;
+    left: 96px;
+    color: var(--muted-dark);
+    font-size: 14px;
+    font-weight: 400;
+  }
+  .slide.title h1 {
+    font-size: 56pt;
+    font-weight: 700;
+    line-height: 1.05;
+    max-width: 80%;
+    margin-bottom: 24px;
+  }
+  .slide.title h1 .accent { color: var(--orange); }
+  .slide.title .byline {
+    font-size: 14pt;
+    color: var(--muted-dark);
+    margin-bottom: 32px;
+  }
+
+  /* Section divider */
+  .slide.divider {
+    background: var(--dark);
+    color: var(--light);
+    justify-content: center;
+    align-items: flex-start;
+  }
+  .slide.divider .block-tag {
+    font-size: 14pt;
+    color: var(--orange);
+    margin-bottom: 16px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .slide.divider h2 {
+    font-size: 64pt;
+    font-weight: 700;
+    line-height: 1.05;
+    max-width: 80%;
+  }
+  .slide.divider h2 .accent { color: var(--orange); }
+  .slide.divider .duration {
+    margin-top: 32px;
+    font-size: 14pt;
+    color: var(--muted-dark);
+  }
+
+  /* Body lists */
+  ul, ol { padding-left: 0; margin-bottom: 16px; list-style: none; }
+  li {
+    font-size: 16pt;
+    line-height: 1.5;
+    margin-bottom: 16px;
+    padding-left: 28px;
+    position: relative;
+  }
+  ul li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 12px;
+    width: 12px;
+    height: 2px;
+    background: var(--orange);
+  }
+  ol { counter-reset: olist; }
+  ol li {
+    counter-increment: olist;
+  }
+  ol li::before {
+    content: counter(olist, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: var(--orange);
+    font-weight: 500;
+    font-size: 14pt;
+  }
+  ol li { padding-left: 48px; }
+
+  p { font-size: 16pt; line-height: 1.5; margin-bottom: 16px; }
+
+  /* Code */
+  pre {
+    background: var(--neutral-100);
+    color: var(--neutral-900);
+    border-left: 4px solid var(--orange);
+    padding: 16px 24px;
+    font-family: var(--mono);
+    font-size: 11pt;
+    line-height: 1.5;
+    overflow: auto;
+    margin: 16px 0;
+    border-radius: 0 8px 8px 0;
+    max-height: 60vh;
+  }
+  .slide.dark pre {
+    background: rgba(255,255,255,0.06);
+    color: var(--light);
+    border-left-color: var(--orange);
+  }
+  code {
+    font-family: var(--mono);
+    font-size: 0.9em;
+    padding: 1px 6px;
+    background: var(--neutral-100);
+    border-radius: 4px;
+    color: var(--neutral-900);
+  }
+  .slide.dark code {
+    background: rgba(255,255,255,0.08);
+    color: var(--orange-light);
+  }
+  pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+
+  /* Two-column / split layouts */
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    flex: 1;
+    min-height: 0;
+  }
+  .row.split-3-2 { grid-template-columns: 3fr 2fr; }
+  .row.split-1-2 { grid-template-columns: 1fr 2fr; }
+
+  /* Cards / callouts */
+  .callout {
+    border-left: 4px solid var(--orange);
+    padding: 16px 24px;
+    background: var(--peach);
+    margin: 16px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .callout .label {
+    color: var(--orange);
+    font-size: 11pt;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+
+  /* Symbol bottom right + slide number bottom left */
+  .slide-mark {
+    position: absolute;
+    bottom: 32px;
+    right: 48px;
+    width: 28px;
+    height: 28px;
+  }
+  .slide-mark svg { width: 100%; height: 100%; }
+  .slide.dark .slide-mark svg path { fill: var(--light) !important; }
+
+  .slide-num {
+    position: absolute;
+    bottom: 32px;
+    left: 48px;
+    font-size: 11pt;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .slide.dark .slide-num { color: var(--muted-dark); }
+  .slide.title .slide-num,
+  .slide.divider .slide-num,
+  .slide.title .slide-mark,
+  .slide.divider .slide-num { display: none; }
+
+  /* Agenda table */
+  .agenda-table {
+    width: 100%;
+    margin-top: 16px;
+    border-collapse: collapse;
+  }
+  .agenda-table td {
+    padding: 14px 0;
+    font-size: 14pt;
+    border-bottom: 1px solid var(--neutral-200);
+    vertical-align: top;
+  }
+  .agenda-table .time {
+    width: 180px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .agenda-table .topic { font-weight: 500; color: var(--neutral-900); }
+  .agenda-table .topic .accent { color: var(--orange); font-weight: 400; font-size: 11pt; text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-top: 2px; }
+
+  /* Key/Value lines */
+  .kv {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 12px 24px;
+    font-size: 14pt;
+    margin-top: 8px;
+  }
+  .kv dt { color: var(--muted); font-weight: 400; }
+  .kv dd { color: var(--neutral-900); }
+  .slide.dark .kv dd { color: var(--light); }
+
+  /* Step pattern */
+  .steps { display: flex; flex-direction: column; gap: 24px; }
+  .step { display: flex; gap: 24px; align-items: flex-start; }
+  .step .n {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    background: var(--orange);
+    color: var(--light);
+    border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14pt;
+  }
+  .step .label { font-weight: 500; font-size: 16pt; margin-bottom: 4px; }
+  .step .desc { color: var(--neutral-700); font-size: 14pt; line-height: 1.5; }
+  .slide.dark .step .desc { color: var(--muted-dark); }
+
+  /* Pills */
+  .pill {
+    display: inline-block;
+    padding: 4px 12px;
+    background: var(--neutral-100);
+    color: var(--neutral-900);
+    border-radius: 999px;
+    font-size: 11pt;
+    font-weight: 500;
+    margin-right: 6px;
+    font-family: var(--mono);
+  }
+  .slide.dark .pill { background: rgba(255,255,255,0.1); color: var(--light); }
+  .pill.accent { background: var(--orange); color: var(--light); }
+  .pill.muted { background: transparent; border: 1px solid var(--neutral-400); }
+
+  /* Nav controls */
+  .nav-controls {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    background: rgba(21, 37, 45, 0.9);
+    padding: 6px;
+    border-radius: 999px;
+    opacity: 0;
+    transition: opacity 200ms ease;
+  }
+  body:hover .nav-controls,
+  .nav-controls:focus-within { opacity: 1; }
+  .nav-controls button {
+    background: transparent;
+    color: var(--light);
+    border: 0;
+    padding: 6px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .nav-controls button:hover { background: rgba(255,255,255,0.15); }
+  .nav-controls .progress {
+    color: var(--light);
+    font-size: 12px;
+    padding: 0 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Wrap-up bonus section indicator */
+  .bonus-tag {
+    display: inline-block;
+    padding: 4px 12px;
+    background: var(--peach);
+    color: var(--orange);
+    border-radius: 4px;
+    font-size: 10pt;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 500;
+    margin-bottom: 12px;
+  }
+
+  /* Architecture diagram (simple boxes) */
+  .arch {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .arch-row {
+    display: flex;
+    gap: 16px;
+    align-items: stretch;
+  }
+  .arch-box {
+    flex: 1;
+    padding: 16px 20px;
+    background: var(--neutral-100);
+    border-left: 3px solid var(--orange);
+    border-radius: 0 8px 8px 0;
+  }
+  .arch-box .role {
+    font-size: 10pt;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+  .arch-box .name { font-weight: 500; font-size: 14pt; }
+  .arch-box .meta { font-size: 11pt; color: var(--neutral-700); margin-top: 4px; font-family: var(--mono); }
+  .slide.dark .arch-box { background: rgba(255,255,255,0.05); }
+  .slide.dark .arch-box .meta { color: var(--muted-dark); }
+
+  /* Compact code for quick references */
+  pre.compact { font-size: 10pt; padding: 12px 18px; }
+
+  /* Quote */
+  .quote {
+    font-size: 28pt;
+    font-weight: 500;
+    line-height: 1.25;
+    color: inherit;
+    max-width: 85%;
+    margin-bottom: 16px;
+  }
+  .quote .accent { color: var(--orange); }
+
+  /* Welcome layout helper */
+  .center-stack {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+</style>
+</head>
+<body>
+<div class="deck">
+
+<!-- ============================================================ -->
+<!-- SLIDE 1 — TITLE                                              -->
+<!-- ============================================================ -->
+<section class="slide title active" data-section="welcome">
+  <svg class="wordmark" viewBox="0 0 677 232" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+    <path d="M380.4,136.3c-3.8,7.2-9.6,13.2-16.7,17.3-7.2,4.2-15.3,6.2-24.4,6.2-9.1,0-17.3-2.1-24.4-6.2-7.1-4.1-12.9-10.1-16.7-17.3-4-7.4-6-15.6-6-24.8,0-9.1,2-17.4,6-24.8,3.8-7.2,9.6-13.2,16.7-17.3,7.1-4.2,15.3-6.2,24.4-6.2,9.1,0,17.3,2.1,24.4,6.2,7.1,4.1,12.9,10.1,16.7,17.3,4,7.4,6,15.6,6,24.8,0,9.1-2,17.4-6,24.8ZM316.2,127.6c2.2,4.7,5.2,8.4,9.2,11.1,4,2.7,8.6,4,13.8,4s9.7-1.3,13.7-4c4-2.7,7.1-6.4,9.2-11.1,2.2-4.7,3.3-10,3.3-16,0-6-1.1-11.3-3.3-16-2.2-4.7-5.2-8.4-9.2-11.1-4-2.7-8.6-4-13.7-4-5.3,0-9.9,1.3-13.8,4-4,2.7-7.1,6.4-9.2,11.1-2.2,4.7-3.3,10-3.3,16s1.1,11.3,3.3,16Z"/>
+    <path d="M670.9,136.3c-3.8,7.2-9.6,13.2-16.7,17.3-7.2,4.2-15.3,6.2-24.4,6.2-9.1,0-17.3-2.1-24.4-6.2-7.1-4.1-12.9-10.1-16.7-17.3-4-7.4-6-15.6-6-24.8,0-9.1,2-17.4,6-24.8,3.8-7.2,9.6-13.2,16.7-17.3,7.1-4.2,15.3-6.2,24.4-6.2,9.1,0,17.3,2.1,24.4,6.2,7.1,4.1,12.9,10.1,16.7,17.3,4,7.4,6,15.6,6,24.8,0,9.1-2,17.4-6,24.8ZM606.7,127.6c2.2,4.7,5.2,8.4,9.2,11.1,4,2.7,8.6,4,13.8,4s9.7-1.3,13.7-4c4-2.7,7.1-6.4,9.2-11.1,2.2-4.7,3.3-10,3.3-16s-1.1-11.3-3.3-16c-2.2-4.7-5.2-8.4-9.2-11.1-4-2.7-8.6-4-13.7-4-5.3,0-9.9,1.3-13.8,4-4,2.7-7.1,6.4-9.2,11.1-2.2,4.7-3.3,10-3.3,16s1.1,11.3,3.3,16Z"/>
+    <path d="M158.1,142.4l-4.5-12.7-5.9-16.8-4.3-12.1-5.6-15.9-6.5-18.5h-31.5l-5,14.3-4.5,12.7-22.3,63.3h20.8l6.5-18.5h31.5l-5.6-15.9h-20.3l4.3-12.1,8.9-25.3,1.5-4.2,1.5,4.2,25.3,71.8h0s20.8,0,20.8,0l-5-14.3Z"/>
+    <path d="M262,74.5c4.7,5.4,7.1,12.3,7.1,20.8s-2.3,16.2-7,21.7c-4.7,5.5-11.9,8.2-21.7,8.2h-27.2v31.5h-20.8v-90.3h47.9c9.7,0,16.9,2.7,21.6,8.1ZM233.9,109.2c4.8,0,8.3-1.2,10.5-3.7s3.3-5.8,3.3-10c0-8.7-4.5-13-13.6-13h-20.8v26.7h20.6Z"/>
+    <path d="M435,66.4v73.9h42.2v16.4h-63v-90.3h20.8Z"/>
+    <path d="M521,66.4v73.9h42.2v16.4h-63v-90.3h20.8Z"/>
+    <path d="M179,37c1.9,0,3.8-.4,5.4-1.3,1.7-.9,3.1-2.1,4.3-3.6s1.9-3.3,2.2-5.2c.3-1.9.2-3.8-.4-5.6-.6-1.8-1.5-3.4-2.9-4.8-1.3-1.4-2.9-2.4-4.7-3-1.8-.6-3.7-.8-5.6-.5-1.9.3-3.7,1-5.2,2C154.1,5,133.7,0,113.1.4c-20.6.5-40.8,6.4-58.3,17.3-17.6,10.9-31.9,26.3-41.5,44.5C3.7,80.5-.9,101,.1,121.7c1,20.6,7.5,40.6,18.9,57.9,11.3,17.3,27.1,31.2,45.6,40.3,18.5,9.1,39.2,13.1,59.8,11.5,20.6-1.6,40.4-8.6,57.3-20.4.5-.4.9-.8,1.3-1.3.3-.5.6-1.1.7-1.7.1-.6,0-1.2,0-1.8-.1-.6-.4-1.2-.7-1.7-.4-.5-.8-.9-1.3-1.3-.5-.3-1.1-.6-1.7-.7-.6-.1-1.2,0-1.8,0-.6.1-1.2.4-1.7.7-15.5,10.8-33.7,17.3-52.6,18.7-18.9,1.4-37.8-2.2-54.8-10.5-17-8.3-31.5-21.1-41.9-36.9-10.4-15.8-16.4-34.1-17.4-53-1-18.9,3.1-37.7,11.9-54.5,8.8-16.8,21.9-30.9,37.9-41,16.1-10,34.5-15.6,53.5-16.1,18.9-.5,37.7,4.1,54.2,13.3-.3,1.7-.2,3.5.3,5.1.5,1.7,1.3,3.2,2.4,4.5,1.1,1.3,2.5,2.4,4.1,3.1s3.3,1.1,5,1.1Z"/>
+  </svg>
+  <div class="date">May 28, 2026 · NAB Workshop</div>
+  <h1>Apollo for NAB<br><span class="accent">From Proposal to Production</span></h1>
+  <div class="byline">Andy Garcia · Senior Solutions Architect</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 2 — OUTCOMES                                           -->
+<!-- ============================================================ -->
+<section class="slide" data-section="welcome">
+  <div class="eyebrow">Welcome</div>
+  <div class="title-h">Today you will walk the full proposal lifecycle.</div>
+  <ul>
+    <li><strong>Approve</strong> a real schema proposal in Studio</li>
+    <li><strong>Mock</strong> the approved schema with <code>@graphql-tools/mock</code> so clients can build against it today</li>
+    <li><strong>Implement</strong> the real subgraph, publish via Rover, and watch the proposal flip to <strong>Implemented</strong></li>
+  </ul>
+  <p style="color: var(--muted); margin-top: 24px; font-size: 14pt;">Along the way you'll see how skills from <code>apollographql/skills</code> fit into each step.</p>
+  <div class="slide-num">02</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 3 — AGENDA                                             -->
+<!-- ============================================================ -->
+<section class="slide" data-section="welcome">
+  <div class="eyebrow">Welcome</div>
+  <div class="title-h">90 minutes, mostly hands-on.</div>
+  <table class="agenda-table">
+    <tr><td class="time">3:30–3:40 PT</td><td class="topic">Welcome + setup<span class="accent">Block 0 · 10 min</span></td></tr>
+    <tr><td class="time">3:40–4:00 PT</td><td class="topic">Propose and Approve<span class="accent">Block 1 · 20 min · Studio walkthrough</span></td></tr>
+    <tr><td class="time">4:00–4:45 PT</td><td class="topic">Mock the Approved Schema<span class="accent">Block 2 · 45 min · Hands-on</span></td></tr>
+    <tr><td class="time">4:45–4:55 PT</td><td class="topic">Implement and Close the Loop<span class="accent">Block 3 · 10 min · Hands-on</span></td></tr>
+    <tr><td class="time">4:55–5:00 PT</td><td class="topic">Wrap-up + Q&amp;A<span class="accent">Block 4 · 5 min</span></td></tr>
+  </table>
+  <div class="slide-num">03</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 4 — PREREQS CHECK                                      -->
+<!-- ============================================================ -->
+<section class="slide" data-section="welcome">
+  <div class="eyebrow">Setup · Block 0</div>
+  <div class="title-h">Verify your install.</div>
+  <p>In your terminal:</p>
+  <pre><code>node --version  # ≥ v20
+rover --version # ≥ 0.27</code></pre>
+  <p style="margin-top: 16px;">If both return versions, you're set. If not, pair up with the person next to you for the lab.</p>
+  <div class="slide-num">04</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 5 — API KEY                                            -->
+<!-- ============================================================ -->
+<section class="slide" data-section="welcome">
+  <div class="eyebrow">Setup · Block 0</div>
+  <div class="title-h">Create a personal API key.</div>
+  <p>Block 3 will publish a schema. Rover needs to authenticate.</p>
+  <div class="steps" style="margin-top: 16px;">
+    <div class="step"><div class="n">1</div><div><div class="label">Open <code>studio.apollographql.com/user-settings/api-keys</code></div><div class="desc">Click <strong>Create New Key</strong>. Name it <code>nab-workshop-2026-05-28</code>.</div></div></div>
+    <div class="step"><div class="n">2</div><div><div class="label">Copy the key. Studio shows it only once.</div></div></div>
+    <div class="step"><div class="n">3</div><div><div class="label">Authenticate Rover</div><pre class="compact"><code>rover config auth
+# paste key when prompted
+
+rover config whoami
+# should show your name + the workshop org</code></pre></div></div>
+  </div>
+  <div class="slide-num">05</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 6 — BLOCK 1 DIVIDER                                    -->
+<!-- ============================================================ -->
+<section class="slide divider" data-section="block-1">
+  <div class="block-tag">Block 1 · 20 minutes</div>
+  <h2>Propose<br>and <span class="accent">Approve</span>.</h2>
+  <div class="duration">Schema proposals as the API contract.</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 7 — WHY THIS MATTERS                                   -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-1">
+  <div class="eyebrow">Block 1 · Why this matters for NAB</div>
+  <div class="title-h">First subgraph live. Now scale federation well.</div>
+  <p>Three things get hard as more subgraphs come online:</p>
+  <ol>
+    <li>A breaking change in one subgraph can break another subgraph's clients</li>
+    <li>Reviewers need to know <strong>what</strong> is changing <strong>and who is affected</strong></li>
+    <li>Governance has to live inside the tooling, not in a Confluence page</li>
+  </ol>
+  <div class="slide-num">07</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 8 — SCHEMA IS A CONTRACT                              -->
+<!-- ============================================================ -->
+<section class="slide dark" data-section="block-1">
+  <div class="eyebrow">Block 1 · Mental model</div>
+  <div class="title-h">A schema is a contract.</div>
+  <div class="quote">Publishing a schema change is either<br>honoring that contract, or <span class="accent">breaking it</span>.</div>
+  <p style="color: var(--muted-dark);">Every API carries breaking-change risk; monolith or federated graph, the contract is the contract. The difference is what catches the breaks. Most monolithic APIs find out at runtime, in production.</p>
+  <p style="color: var(--muted-dark); margin-top: 16px;"><strong>Apollo GraphOS</strong> gives federated graphs the tools to catch breaks <em>before</em> the merge button: schema proposals, composition checks, and operation-impact analysis against real traffic.</p>
+  <div class="slide-num">08</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 9 — WHAT A PROPOSAL IS                                -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-1">
+  <div class="eyebrow">Block 1 · The mental model</div>
+  <div class="title-h">A proposal is like a PR; it doesn't change anything on its own.</div>
+  <p>Once approved, the owning team still implements the change. The proposal flips to <strong>Implemented</strong> when the matching schema is published.</p>
+  <ol style="margin-top: 16px;">
+    <li>Author opens a proposal in Studio</li>
+    <li>GraphOS analyzes: composition, breaking changes, operation impact</li>
+    <li>Reviewers approve, reject, or comment</li>
+    <li>Owning team implements the change in their subgraph repo</li>
+    <li>When the matching schema is published, GraphOS marks the proposal <strong>Implemented</strong></li>
+  </ol>
+  <div class="slide-num">09</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 10 — WHAT GRAPHOS ANALYZES                            -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-1">
+  <div class="eyebrow">Block 1 · What GraphOS analyzes</div>
+  <div class="title-h">Four checks, automatic, every proposal.</div>
+  <table class="agenda-table" style="margin-top: 8px;">
+    <tr><td class="time" style="width: 280px;">Composition</td><td>Does this still produce a valid supergraph?</td></tr>
+    <tr><td class="time">Breaking changes</td><td>Are types/fields removed, renamed, or made stricter?</td></tr>
+    <tr><td class="time">Operation impact</td><td>Which client queries from real traffic would break?</td></tr>
+    <tr><td class="time">Federation impact</td><td>Which subgraphs are affected via <code>@key</code>, <code>@requires</code>, <code>@provides</code>?</td></tr>
+  </table>
+  <p style="margin-top: 32px; color: var(--muted);">Without proposals, you discover all four in production. With proposals, you discover them before the merge button.</p>
+  <div class="slide-num">10</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 11 — THE CART PROPOSAL                                -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-1">
+  <div class="eyebrow">Block 1 · The proposal we'll walk together</div>
+  <div class="title-h">Add a Cart subgraph.</div>
+  <p style="margin-bottom: 16px;">The existing graph has products, users, reviews. Today's proposal adds a Cart entity, a CartItem value type, and a <code>User.carts</code> field:</p>
+  <pre><code>type Cart @key(fields: "id") {
+  id: ID!
+  total: Float!
+  totalQuantity: Int!
+  products: [CartItem!]!
+  user: User!
+}
+
+type CartItem {
+  quantity: Int!
+  product: Product!
+}
+
+type User @key(fields: "id") {
+  id: ID!
+  carts: [Cart!]!
+}
+
+type Product @key(fields: "id", resolvable: false) {
+  id: ID!
+}</code></pre>
+  <div class="slide-num">11</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 12 — GRAPHOS REPORT                                   -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-1">
+  <div class="eyebrow">Block 1 · GraphOS report</div>
+  <div class="title-h">"Affected Operations: 0" is the punchline.</div>
+  <pre><code>Composition Status: OK
+Breaking Changes: 0 (additive: new entity, new value type, new field on User)
+Affected Operations: 0
+Federation Impact: users subgraph gains a new resolver dependency;
+  cart references Product via CartItem.product (resolved by products subgraph)
+Recommendation: Safe to implement.</code></pre>
+  <p style="margin-top: 24px;">Three Fed 2 patterns visible in one proposal: a new entity with <code>@key</code>, cross-subgraph field contribution via matching <code>@key</code> on User, and a stub declaration <code>Product @key(..., resolvable: false)</code>.</p>
+  <div class="slide-num">12</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 13 — SCHEMA CHECK FAILURES                             -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-1">
+  <div class="eyebrow">Block 1 · Schema checks</div>
+  <div class="title-h">Three ways a check fails. All caught before merge.</div>
+  <p>Every proposal (and every CI <code>rover subgraph check</code>) runs these:</p>
+  <ol style="margin-top: 8px;">
+    <li><strong>Composition</strong> — the supergraph doesn't compose. Conflicting key fields, missing types, federation directive misuse.</li>
+    <li><strong>Operation check</strong> — a field this proposal removes or changes is used by real client traffic. GraphOS shows which operations and which client versions.</li>
+    <li><strong>Lint</strong> — schema design rule violations: naming, nullability, deprecation patterns, NAB conventions you encode.</li>
+  </ol>
+  <p style="margin-top: 24px; color: var(--muted);">Live demo from Studio: one of each, on the workshop graph.</p>
+  <div class="slide-num"></div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 14 — LIVE WALKTHROUGH                                  -->
+<!-- ============================================================ -->
+<section class="slide dark" data-section="block-1">
+  <div class="eyebrow">Block 1 · Live in Studio</div>
+  <div class="title-h">Open, review, <span style="color: var(--orange);">approve</span>.</div>
+  <ol style="margin-top: 16px;">
+    <li>Open a new proposal in <code>andy-nab-workshop</code> (any change works for the demo)</li>
+    <li>The diff view, showing exactly what's changing</li>
+    <li>Composition + breaking changes + operation impact reports</li>
+    <li>Inline reviewer comments</li>
+    <li><strong style="color: var(--orange);">Clicking Approve</strong></li>
+  </ol>
+  <p style="color: var(--muted-dark); margin-top: 24px;">For the rest of the workshop we'll treat the Cart additions from earlier as our approved proposal. Block 2 picks up there; Block 3 closes the loop.</p>
+  <div class="slide-num">13</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 14 — HOW THIS LANDS AT NAB                            -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-1">
+  <div class="eyebrow">Block 1 · How this lands at NAB</div>
+  <div class="title-h">Three places proposals plug into NAB's flow.</div>
+  <ol style="margin-top: 8px;">
+    <li><strong>BFF consolidation reviews.</strong> As BFFs collapse into federated subgraphs, proposals are the structured place to evaluate each merge.</li>
+    <li><strong>Cross-team field ownership disputes.</strong> <code>@override</code> migrations are exactly the kind of change you want a proposal flow on.</li>
+    <li><strong>The audit trail for compliance.</strong> Every proposal has a timeline: who proposed, who approved, when implemented. That's a compliance artifact, not just a workflow.</li>
+  </ol>
+  <div class="slide-num">14</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 15 — BLOCK 2 DIVIDER                                  -->
+<!-- ============================================================ -->
+<section class="slide divider" data-section="block-2">
+  <div class="block-tag">Block 2 · 45 minutes · Hands-on</div>
+  <h2>Mock the<br>Approved <span class="accent">Schema</span>.</h2>
+  <div class="duration">Hand a working API to client teams while the backend catches up.</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 16 — STORY HANDOFF                                    -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-2">
+  <div class="eyebrow">Block 2 · The story</div>
+  <div class="title-h">Approved. Now what?</div>
+  <p>The owning team will implement the Cart subgraph for real. That takes days.</p>
+  <p>Meanwhile, every downstream team wants something queryable <strong>today</strong>.</p>
+  <div class="callout">
+    <div class="label">The pattern</div>
+    Spin up a <strong>standalone mock server</strong> that serves the proposal's API schema with auto-generated fake data. Hand the URL to client teams. They develop against it as if the backend were live.
+  </div>
+  <div class="slide-num">16</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 17 — WHAT WE'RE BUILDING                              -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-2">
+  <div class="eyebrow">Block 2 · Architecture</div>
+  <div class="title-h">Two services, running in parallel.</div>
+  <div class="arch">
+    <div class="arch-row">
+      <div class="arch-box">
+        <div class="role">Production-now</div>
+        <div class="name">Router + products + users + reviews</div>
+        <div class="meta">Real DummyJSON data · :4000</div>
+      </div>
+      <div class="arch-box" style="border-left-color: var(--teal);">
+        <div class="role">Proposal-preview</div>
+        <div class="name">mock-server (standalone)</div>
+        <div class="meta">@graphql-tools/mock · :4003</div>
+      </div>
+    </div>
+  </div>
+  <p style="margin-top: 24px;">Clients pick based on what they need. Real data → router (4000). Proposal preview → mock (4003).</p>
+  <p style="margin-top: 8px; color: var(--muted);">Mock server is <strong>not</strong> a federation subgraph. It's a parallel artifact representing a future API state.</p>
+  <div class="slide-num">17</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 18 — SETUP                                            -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-2">
+  <div class="eyebrow">Block 2 · Setup</div>
+  <div class="title-h">Clone, install, run.</div>
+  <pre><code>git clone https://github.com/apollosolutions/nab-workshop nab-workshop
+cd nab-workshop
+pnpm install</code></pre>
+  <p>One terminal for the subgraphs (products :4001, users :4002, reviews :4004, cart scaffold :4005):</p>
+  <pre><code>pnpm dev:subgraphs</code></pre>
+  <p>A second terminal for the router (:4000):</p>
+  <pre><code>pnpm router</code></pre>
+  <p style="margin-top: 16px;">Verify in Sandbox at <code>localhost:4000</code>:</p>
+  <pre class="compact"><code>query VerifyRouter {
+  product(id: "1") { id title price }
+  user(id: "1") { id firstName email }
+}</code></pre>
+  <div class="slide-num">18</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 19 — TOUR THE CODE                                    -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-2">
+  <div class="eyebrow">Block 2 · Tour the code</div>
+  <div class="title-h">Three things to read first.</div>
+  <ol style="margin-top: 8px;">
+    <li><strong>subgraphs/products/</strong> and <strong>subgraphs/users/</strong>: TypeScript subgraphs using <code>buildSubgraphSchema</code>, backed by DummyJSON. Both expose entities with <code>@key(fields: "id")</code> and <code>__resolveReference</code>.</li>
+    <li><strong>mock-server/src/index.ts</strong>: pre-built. Uses <code>makeExecutableSchema</code> + <code>addMocksToSchema</code>. Plain GraphQL, not a subgraph.</li>
+    <li><strong>mock-server/fetch-schema.sh</strong>: runs <code>rover graph fetch workshop-hy3h2cb@dev</code> and writes the current API schema. Saves you from copy-pasting.</li>
+  </ol>
+  <div class="slide-num">19</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 20 — FILL MOCK SCHEMA                                 -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-2">
+  <div class="eyebrow">Block 2 · Fill in the mock schema</div>
+  <div class="title-h">Fetch the proposal variant directly.</div>
+  <p>Behind the scenes, every proposal is its own variant. <code>pnpm dev:mock</code> always fetches the latest schema for the variant you give it, then starts the mock server.</p>
+  <pre><code>pnpm dev:mock p-0       # whichever variant the Cart proposal is on</code></pre>
+  <p style="margin-top: 16px;">The proposal's API schema (current API + Cart additions) lands in <code>mock-server/schema.graphql</code> and the mock server boots on port 4003. Nodemon watches for further edits and hot-reloads.</p>
+  <p style="margin-top: 16px; color: var(--muted);">No variant arg defaults to <code>@dev</code>. Override with <code>prod</code>, <code>p-1</code>, etc.</p>
+  <div class="slide-num">20</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 21 — HOW @graphql-tools/mock WORKS                    -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-2">
+  <div class="eyebrow">Block 2 · Under the hood</div>
+  <div class="title-h">Zero resolver code. Full mock data.</div>
+  <pre><code>const typeDefs = gql(readFileSync('./schema.graphql', 'utf8'));
+const schema = makeExecutableSchema({ typeDefs });
+const mockedSchema = addMocksToSchema({ schema });
+
+const server = new ApolloServer({ schema: mockedSchema });</code></pre>
+  <p style="margin-top: 16px;"><code>addMocksToSchema</code> walks every type in the schema and auto-generates fake values: strings become <code>"Hello World"</code>, floats become random numbers, IDs become unique strings. No resolvers required.</p>
+  <p style="margin-top: 16px; color: var(--muted);">What we're NOT doing: no <code>buildSubgraphSchema</code>, no federation directives, no <code>_service</code> field. Plain GraphQL.</p>
+  <div class="slide-num">21</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 22 — START THE MOCK                                   -->
+<!-- ============================================================ -->
+<section class="slide dark" data-section="block-2">
+  <div class="eyebrow">Block 2 · Start the mock</div>
+  <div class="title-h">A URL you hand to client teams.</div>
+  <pre><code>pnpm dev:mock</code></pre>
+  <p style="color: var(--muted-dark); margin-top: 16px;">You should see: <code>🎭  Mock server ready at http://localhost:4003/</code></p>
+  <p style="margin-top: 24px; color: var(--light); font-size: 20pt;">That URL is the deliverable. Front-end teams point at it and start building features against the Cart contract.</p>
+  <p style="color: var(--muted-dark); margin-top: 16px;">They don't wait on the backend.</p>
+  <div class="slide-num">22</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 23 — QUERY THE MOCK                                   -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-2">
+  <div class="eyebrow">Block 2 · Payoff</div>
+  <div class="title-h">Same query, no backend.</div>
+  <pre><code>query GetUserCart {
+  user(id: "1") {
+    firstName
+    carts {
+      id
+      total
+      products {
+        quantity
+        product { id title price }
+      }
+    }
+  }
+}</code></pre>
+  <p style="margin-top: 16px;">Auto-mocked Carts, auto-mocked CartItems, auto-mocked Product references, all returned from the same query clients will run against the real API when it ships.</p>
+  <p style="margin-top: 16px; color: var(--muted);">Today they get fakes. Tomorrow they get reality.</p>
+  <div class="slide-num">23</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 24 — CUSTOMIZE MOCKS                                  -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-2">
+  <div class="eyebrow">Block 2 · Optional</div>
+  <div class="title-h">Customize the mock data.</div>
+  <pre><code>const mocks = {
+  Cart: () => ({
+    id: () => `cart_${Math.random().toString(36).slice(2, 8)}`,
+    total: () => parseFloat((Math.random() * 500 + 50).toFixed(2)),
+    totalProducts: () => Math.floor(Math.random() * 5) + 1,
+    totalQuantity: () => Math.floor(Math.random() * 10) + 1,
+  }),
+};
+const mockedSchema = addMocksToSchema({ schema, mocks });</code></pre>
+  <p style="margin-top: 16px;">Realistic-looking cart data, still no resolver code. For client teams who want more believable test data.</p>
+  <div class="slide-num">24</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 25 — WHY THIS MATTERS AT NAB                          -->
+<!-- ============================================================ -->
+<section class="slide dark" data-section="block-2">
+  <div class="eyebrow">Block 2 · Why this matters at NAB</div>
+  <div class="title-h">The parallel-development primitive.</div>
+  <p style="color: var(--light);">Every time the team approves a schema change, you hand client teams a mocked API for the future state while the backend catches up.</p>
+  <p style="color: var(--muted-dark); margin-top: 16px;">In production you'd host the mock server somewhere durable (a static URL, a Fly.io app, whatever fits NAB's infrastructure) and version it alongside the proposal. When the proposal moves to Implemented, decommission the mock and clients point at the router.</p>
+  <div class="slide-num">25</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 26 — BLOCK 3 DIVIDER                                  -->
+<!-- ============================================================ -->
+<section class="slide divider" data-section="block-3">
+  <div class="block-tag">Block 3 · 10 minutes · Hands-on</div>
+  <h2>Implement<br>and <span class="accent">close the loop</span>.</h2>
+  <div class="duration">AI writes the resolvers. We publish.</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 27 — CART SCAFFOLD TOUR                               -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-3">
+  <div class="eyebrow">Block 3 · Build the Cart subgraph</div>
+  <div class="title-h">We're going to build it.</div>
+  <p>A brand new federated subgraph at <code>subgraphs/cart/</code>. Four steps:</p>
+  <ol>
+    <li>Create the schema from the approved proposal's types</li>
+    <li>Wire up resolvers (AI does most of the typing via the <code>apollo-server</code> skill)</li>
+    <li>Register it in <code>router/supergraph.yaml</code> and run it on port 4005</li>
+    <li>Publish to GraphOS and watch the proposal flip to <strong>Implemented</strong></li>
+  </ol>
+  <p style="margin-top: 16px; color: var(--muted);">Cart isn't in the supergraph yet. By the end of Block 3, it is.</p>
+  <div class="slide-num">27</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 28 — FILL SCHEMA + AI RESOLVERS                       -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-3">
+  <div class="eyebrow">Block 3 · AI writes the subgraph</div>
+  <div class="title-h">Tell AI what to build.</div>
+  <p>The workshop ships a ready-made build prompt at <code>workshop/CART_PROMPT.md</code>. Open it, copy the prompt block, and paste it into Cursor or Claude Code from the workshop root.</p>
+  <div class="callout">
+    <div class="label">Slash command + brief</div>
+    <code>/apollo-server</code> ... build a new subgraph at <code>subgraphs/cart/</code>, port 4005, schema + DummyJSON endpoints + resolver list spelled out below. AI writes <code>package.json</code>, <code>tsconfig</code>, <code>src/index.ts</code>, <code>schema.graphql</code>, and the federation resolvers.
+  </div>
+  <p style="margin-top: 16px;">Review the output before accepting. Then from the workshop root:</p>
+  <pre class="compact"><code>pnpm install      # picks up the new workspace package
+pnpm dev:cart     # starts the cart subgraph on port 4005</code></pre>
+  <p style="margin-top: 8px; color: var(--muted);">If anything goes off the rails, <code>git checkout block-3-completed</code> has a known-good version.</p>
+  <div class="slide-num">28</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 29 — REGISTER WITH ROUTER                             -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-3">
+  <div class="eyebrow">Block 3 · Register with the router</div>
+  <div class="title-h">Add cart to supergraph.yaml.</div>
+  <pre><code>cart:
+  routing_url: http://localhost:4005
+  schema: { file: ../subgraphs/cart/schema.graphql }</code></pre>
+  <p>rover dev re-composes automatically. Verify in Sandbox:</p>
+  <pre class="compact"><code>query VerifyCart {
+  user(id: "1") {
+    firstName
+    carts {
+      id
+      total
+      products { quantity product { id title price } }
+    }
+  }
+}</code></pre>
+  <p style="margin-top: 8px;">Real cart data from DummyJSON, with each <code>product</code> resolved by the products subgraph and the cart fields resolved by your new cart subgraph.</p>
+  <div class="slide-num">29</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 30 — PUBLISH & CLOSE THE LOOP                         -->
+<!-- ============================================================ -->
+<section class="slide dark" data-section="block-3">
+  <div class="eyebrow">Block 3 · Close the loop</div>
+  <div class="title-h">Publish to GraphOS.</div>
+  <pre><code>rover subgraph publish workshop-hy3h2cb@dev \
+  --name cart \
+  --schema ./subgraphs/cart/schema.graphql \
+  --routing-url http://localhost:4005</code></pre>
+  <p style="color: var(--muted-dark); margin-top: 16px;">Or via the starter's shortcut: <code>pnpm publish:cart:dev</code></p>
+  <p style="font-size: 22pt; margin-top: 32px;"><strong>The proposal flips from Approved to <span style="color: var(--orange);">Implemented</span>.</strong></p>
+  <p style="color: var(--muted-dark); margin-top: 8px;">GraphOS detected that the published schema matches the proposed change and closed the loop automatically.</p>
+  <div class="slide-num">30</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 31 — BONUS DIVIDER                                    -->
+<!-- ============================================================ -->
+<section class="slide divider" data-section="bonus">
+  <div class="block-tag">Bonus · If time</div>
+  <h2>Apollo<br><span class="accent">Connectors</span>.</h2>
+  <div class="duration">The same Cart subgraph, without any resolver code.</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 32 — CONNECTORS                                       -->
+<!-- ============================================================ -->
+<section class="slide" data-section="bonus">
+  <div class="eyebrow">Bonus · Apollo Connectors</div>
+  <div class="title-h">The same Cart, as pure schema.</div>
+  <pre class="compact"><code>extend schema
+  @link(url: "https://specs.apollo.dev/connect/v0.2", import: ["@source", "@connect"])
+  @source(name: "dummyjson", http: { baseURL: "https://dummyjson.com" })
+
+type Cart @key(fields: "id") {
+  id: ID!
+  total: Float!
+  user: User!
+}
+
+type Query {
+  cart(id: ID!): Cart
+    @connect(
+      source: "dummyjson"
+      http: { GET: "/carts/{$args.id}" }
+      selection: "id total user: { id: $.userId }"
+    )
+}</code></pre>
+  <p style="margin-top: 16px;">No Node project, no resolver code. The router executes the HTTP requests; <code>selection</code> transforms the REST response into GraphQL fields.</p>
+  <div class="slide-num">32</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 33 — CONNECTORS — WHEN                                -->
+<!-- ============================================================ -->
+<section class="slide" data-section="bonus">
+  <div class="eyebrow">Bonus · When to reach for Connectors</div>
+  <div class="title-h">For NAB: a natural fit for BFF consolidation.</div>
+  <div class="row" style="margin-top: 16px;">
+    <div>
+      <h3 style="font-size: 16pt; margin-bottom: 12px; color: var(--orange);">Connectors fits when</h3>
+      <ul>
+        <li>The subgraph mostly wraps a REST API with light shaping</li>
+        <li>Most NAB systems-of-record subgraphs would qualify</li>
+        <li>You want schema-as-transformation, not code-as-transformation</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="font-size: 16pt; margin-bottom: 12px; color: var(--muted);">Hand-written still fits when</h3>
+      <ul>
+        <li>Custom business logic in resolvers</li>
+        <li>Complex authentication flows</li>
+        <li>Transformations the selection mapping can't express</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-num">33</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 34 — WHAT YOU HAVE NOW                                -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-4">
+  <div class="eyebrow">Wrap-up</div>
+  <div class="title-h">What you have now.</div>
+  <ul>
+    <li>A standalone mock server (mock-server) for client teams to develop against the proposed contract</li>
+    <li>A real Cart subgraph you implemented during Block 3, composed into the router and published to GraphOS</li>
+    <li>An approved-and-implemented Cart proposal in Studio with the full lifecycle visible in the timeline</li>
+    <li>Hands-on with <code>@graphql-tools/mock</code> (standalone) and <code>@apollo/subgraph</code> (federated)</li>
+    <li>A working pattern for using <code>apollo-server</code> skill to generate federation resolvers</li>
+  </ul>
+  <div class="slide-num">34</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 35 — NEXT STEPS                                       -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-4">
+  <div class="eyebrow">Wrap-up · Next steps for NAB</div>
+  <div class="title-h">Three places to take this next.</div>
+  <ul style="margin-top: 16px;">
+    <li><strong>Architecture team:</strong> apply propose → mock → implement to the actual entity shapes you're modeling. First iteration takes a day or two; Andy available for pairing.</li>
+    <li><strong>Platform team:</strong> start using proposals in the workshop Apollo org for pre-production schema changes. Migrate to NAB's own org once IP safelisting and metrics-publishing land.</li>
+    <li><strong>Follow-up session:</strong> schedule a deeper hands-on once Architecture has a candidate entity model. Roughly two weeks out.</li>
+  </ul>
+  <div class="slide-num">35</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 36 — RESOURCES                                        -->
+<!-- ============================================================ -->
+<section class="slide" data-section="block-4">
+  <div class="eyebrow">Wrap-up · Resources</div>
+  <div class="title-h">Take this with you.</div>
+  <dl class="kv">
+    <dt>Workshop starter</dt>
+    <dd>github.com/apollosolutions/nab-workshop</dd>
+    <dt>Federation docs</dt>
+    <dd>apollographql.com/docs/federation/</dd>
+    <dt>Schema Proposals</dt>
+    <dd>apollographql.com/docs/graphos/platform/schema-management/proposals</dd>
+    <dt>@graphql-tools/mock</dt>
+    <dd>the-guild.dev/graphql/tools/docs/mocking</dd>
+    <dt>apollographql/skills</dt>
+    <dd>github.com/apollographql/skills</dd>
+    <dt>Apollo Sandbox</dt>
+    <dd>studio.apollographql.com/sandbox</dd>
+  </dl>
+  <div class="slide-num">36</div>
+  <div class="slide-mark"><svg viewBox="0 0 238 238" xmlns="http://www.w3.org/2000/svg"><path d="M169.918 151.249L164.506 135.869L157.379 115.617L152.223 100.96L145.474 81.779L137.633 59.5H99.6029L93.5324 76.7516L88.1203 92.1321L61.2402 168.518H86.3228L94.1915 146.222H132.229L125.479 127.04H100.913L106.069 112.384L116.837 81.779L118.618 76.7134L120.398 81.779L150.906 168.5L150.913 168.518H175.995L169.918 151.249Z" fill="#15252D"/><path d="M222.007 60.4327C221.377 59.3152 220.328 58.4938 219.092 58.1493C217.857 57.8048 216.534 57.9653 215.417 58.5956C214.299 59.2259 213.478 60.2743 213.133 61.5102C212.789 62.7461 212.949 64.0682 213.58 65.1858C226.408 87.9957 230.592 114.663 225.366 140.306C220.141 165.948 205.854 188.851 185.122 204.822C164.39 220.792 138.6 228.761 112.472 227.271C86.3451 225.78 61.6284 214.93 42.8471 196.706C24.0658 178.481 12.4764 154.102 10.2003 128.032C7.92431 101.961 15.1139 75.9426 30.4531 54.7395C45.7923 33.5363 68.2548 18.567 93.7287 12.5717C119.203 6.57632 145.984 9.95607 169.169 22.0923C168.426 25.5125 168.92 29.0854 170.561 32.1766C172.202 35.2678 174.886 37.6774 178.136 38.9777C181.385 40.278 184.99 40.3849 188.311 39.2794C191.632 38.1739 194.453 35.9275 196.275 32.9389C198.097 29.9504 198.801 26.4131 198.262 22.9548C197.723 19.4966 195.976 16.3412 193.331 14.0486C190.687 11.7561 187.315 10.4748 183.815 10.4321C180.316 10.3895 176.914 11.5883 174.214 13.8157C149.014 0.453404 119.841 -3.37605 92.0453 3.02956C64.2498 9.43517 39.6953 25.6465 22.8848 48.6905C6.07431 71.7345 -1.86527 100.066 0.522193 128.49C2.90965 156.914 15.4641 183.525 35.8831 203.442C56.3021 223.359 83.2168 235.247 111.691 236.926C140.166 238.605 168.291 229.963 190.91 212.584C213.528 195.205 229.123 170.255 234.835 142.308C240.547 114.362 235.992 85.2934 222.007 60.4333V60.4327Z" fill="#15252D"/></svg></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 37 — Q&A                                              -->
+<!-- ============================================================ -->
+<section class="slide divider" data-section="block-4">
+  <div class="block-tag">Wrap-up</div>
+  <h2>Questions?</h2>
+  <div class="duration">Or: what would you most want covered in the follow-up?</div>
+</section>
+
+</div>
+
+<div class="nav-controls">
+  <button id="prev" aria-label="Previous">← Prev</button>
+  <span class="progress"><span id="cur">1</span> / <span id="total"></span></span>
+  <button id="next" aria-label="Next">Next →</button>
+  <button id="fullscreen" aria-label="Toggle fullscreen" title="Toggle fullscreen (F)">⛶</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  // Auto-number slides by position so inserts don't force a renumber.
+  // Title/divider slides keep their slide-num hidden via CSS.
+  slides.forEach((s, i) => {
+    const numEl = s.querySelector('.slide-num');
+    if (numEl) numEl.textContent = String(i + 1).padStart(2, '0');
+  });
+
+  function go(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    history.replaceState(null, '', `#${idx + 1}`);
+  }
+
+  document.getElementById('prev').onclick = (e) => { e.stopPropagation(); go(idx - 1); };
+  document.getElementById('next').onclick = (e) => { e.stopPropagation(); go(idx + 1); };
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      (document.documentElement.requestFullscreen?.() ||
+       document.documentElement.webkitRequestFullscreen?.());
+    } else {
+      (document.exitFullscreen?.() || document.webkitExitFullscreen?.());
+    }
+  }
+  document.getElementById('fullscreen').onclick = (e) => { e.stopPropagation(); toggleFullscreen(); };
+
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(idx + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(idx - 1); }
+    if (e.key === 'Home') go(0);
+    if (e.key === 'End') go(slides.length - 1);
+    if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFullscreen(); }
+  });
+
+  // Click outer edges to navigate
+  document.addEventListener('click', e => {
+    if (e.target.closest('.nav-controls')) return;
+    if (e.target.closest('pre')) return;
+    if (e.target.closest('a')) return;
+    const x = e.clientX;
+    const w = window.innerWidth;
+    if (x < w * 0.15) go(idx - 1);
+    else if (x > w * 0.85) go(idx + 1);
+  });
+
+  // Deep-link to slide via hash
+  const initial = parseInt(location.hash.replace('#', ''), 10);
+  if (!isNaN(initial) && initial > 0 && initial <= slides.length) go(initial - 1);
+</script>
+</body>
+</html>
