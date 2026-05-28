@@ -13,7 +13,7 @@
 
 set -euo pipefail
 
-GRAPH_REF="${GRAPH_REF:-workshop-hy3h2cb@current}"
+GRAPH_REF="${GRAPH_REF:-workshop-hy3h2cb@dev}"
 OUTPUT="${OUTPUT:-./schema.graphql}"
 
 if ! command -v rover >/dev/null 2>&1; then

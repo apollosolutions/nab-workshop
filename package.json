@@ -10,7 +10,19 @@
     "dev:users": "pnpm --filter=nab-workshop-users dev",
     "dev:reviews": "pnpm --filter=nab-workshop-reviews dev",
     "dev:mock": "pnpm --filter=nab-workshop-mock-server dev",
-    "router": "cd router && rover dev --supergraph-config supergraph.yaml --router-config router-config.yaml"
+    "router": "cd router && rover dev --supergraph-config supergraph.yaml --router-config router-config.yaml",
+    "check:products": "pnpm --filter=start-with-typescript schema:check",
+    "check:users": "pnpm --filter=nab-workshop-users schema:check",
+    "check:reviews": "pnpm --filter=nab-workshop-reviews schema:check",
+    "check:cart": "pnpm --filter=nab-workshop-cart schema:check",
+    "publish:products:dev": "pnpm --filter=start-with-typescript schema:publish:dev",
+    "publish:products:prod": "pnpm --filter=start-with-typescript schema:publish:prod",
+    "publish:users:dev": "pnpm --filter=nab-workshop-users schema:publish:dev",
+    "publish:users:prod": "pnpm --filter=nab-workshop-users schema:publish:prod",
+    "publish:reviews:dev": "pnpm --filter=nab-workshop-reviews schema:publish:dev",
+    "publish:reviews:prod": "pnpm --filter=nab-workshop-reviews schema:publish:prod",
+    "publish:cart:dev": "pnpm --filter=nab-workshop-cart schema:publish:dev",
+    "publish:cart:prod": "pnpm --filter=nab-workshop-cart schema:publish:prod"
   },
   "engines": {
     "node": ">=20.0",

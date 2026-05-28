@@ -46,7 +46,7 @@ pnpm install
 
 **Block 2** (mock the approved schema). Run `pnpm fetch-schema` from `mock-server/` to grab the current API schema, paste the proposal's additions on top, then `pnpm dev:mock` and hand the URL to client teams.
 
-**Block 3** (implement and close the loop). Replace the placeholder schema in `subgraphs/reviews/schema.graphql` with the approved Review schema, fill in resolvers, then `rover subgraph publish workshop-hy3h2cb@current --name reviews ...` to close the proposal loop in Studio.
+**Block 3** (implement and close the loop). Fill in the `subgraphs/cart/` scaffold (schema + resolvers), register it in `router/supergraph.yaml`, then `rover subgraph publish workshop-hy3h2cb@dev --name cart ...` (or `pnpm publish:cart:dev`) to close the proposal loop in Studio.
 
 ## Common commands
 

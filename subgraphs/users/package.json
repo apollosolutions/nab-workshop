@@ -12,7 +12,10 @@
     "build": "tsc",
     "postinstall": "pnpm build",
     "start": "node dist/index.js",
-    "dev": "nodemon --watch \"src/**\" --ext \"ts,json,graphql\" --exec \"pnpm build && pnpm start\""
+    "dev": "nodemon --watch \"src/**\" --ext \"ts,json,graphql\" --exec \"pnpm build && pnpm start\"",
+    "schema:check": "./schema-check.sh",
+    "schema:publish:dev": "./schema-publish-dev.sh",
+    "schema:publish:prod": "./schema-publish-prod.sh"
   },
   "dependencies": {
     "@apollo/server": "^5.0.0",

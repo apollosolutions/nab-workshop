@@ -5,7 +5,7 @@
         "args": ["-l"],
         "env": {
           "APOLLO_KEY": "service:workshop-hy3h2cb:L9pbhAfHyQzI3qfa0eTnug",
-          "APOLLO_GRAPH_REF": "workshop-hy3h2cb@current",
+          "APOLLO_GRAPH_REF": "workshop-hy3h2cb@dev",
         }
       }
     },
