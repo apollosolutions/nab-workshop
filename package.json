@@ -1,0 +1,19 @@
+{
+  "name": "nab-workshop",
+  "private": true,
+  "version": "0.0.0",
+  "description": "NAB Workshop — From Proposal to Production. pnpm workspace root.",
+  "scripts": {
+    "build": "pnpm -r --filter=./subgraphs/* --filter=./mock-server build",
+    "dev:subgraphs": "pnpm --parallel --filter=./subgraphs/* dev",
+    "dev:products": "pnpm --filter=start-with-typescript dev",
+    "dev:users": "pnpm --filter=nab-workshop-users dev",
+    "dev:reviews": "pnpm --filter=nab-workshop-reviews dev",
+    "dev:mock": "pnpm --filter=nab-workshop-mock-server dev",
+    "router": "cd router && rover dev --supergraph-config supergraph.yaml --router-config router-config.yaml"
+  },
+  "engines": {
+    "node": ">=20.0",
+    "pnpm": ">=9.0"
+  }
+}
