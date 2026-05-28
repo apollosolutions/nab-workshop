@@ -1,0 +1,12 @@
+query UserWithReviews($id: ID!) {
+  user(id: $id) {
+    id
+    firstName
+    writtenReviews {
+      id
+      rating
+      comment
+      date
+    }
+  }
+}

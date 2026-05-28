@@ -1,0 +1,11 @@
+query ProductCatalog {
+  products {
+    id
+    title
+    category
+    thumbnail
+    price
+    rating
+    stock
+  }
+}

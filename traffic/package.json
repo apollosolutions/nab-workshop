@@ -1,0 +1,13 @@
+{
+  "name": "nab-workshop-traffic",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Synthetic traffic generator for the workshop supergraph.",
+  "engines": {
+    "node": ">=20.0"
+  },
+  "scripts": {
+    "start": "node src/index.js"
+  }
+}

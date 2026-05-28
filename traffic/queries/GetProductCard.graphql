@@ -1,0 +1,9 @@
+query GetProductCard($id: ID!) {
+  product(id: $id) {
+    id
+    title
+    thumbnail
+    brand
+    price
+  }
+}
