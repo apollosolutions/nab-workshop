@@ -1,20 +1,25 @@
 #!/usr/bin/env bash
 #
-# Fetch the current API schema from the workshop graph in GraphOS
-# and write it to schema.graphql. Run from mock-server/.
+# Fetch the API schema from a workshop variant and write it to schema.graphql.
 #
-# Requires Rover to be authenticated with a personal API key
-# (one-time setup: rover config auth).
+# Proposals are themselves variants (named p-0, p-1, ...), so you can fetch
+# the post-proposal API schema directly without any manual paste step.
 #
 # Usage:
-#   ./fetch-schema.sh
+#   ./fetch-schema.sh                 # workshop-hy3h2cb@dev
+#   ./fetch-schema.sh prod            # workshop-hy3h2cb@prod
+#   ./fetch-schema.sh p-0             # proposal preview (post-proposal API)
+#   VARIANT=p-0 ./fetch-schema.sh
 #   GRAPH_REF=other-graph@variant ./fetch-schema.sh
 #   OUTPUT=./other-file.graphql ./fetch-schema.sh
 
 set -euo pipefail
 
-GRAPH_REF="${GRAPH_REF:-workshop-hy3h2cb@dev}"
+VARIANT="${1:-${VARIANT:-dev}}"
+GRAPH_REF="${GRAPH_REF:-workshop-hy3h2cb@$VARIANT}"
 OUTPUT="${OUTPUT:-./schema.graphql}"
+
+cd "$(dirname "$0")"
 
 if ! command -v rover >/dev/null 2>&1; then
   echo "Error: rover is not installed or not on PATH." >&2

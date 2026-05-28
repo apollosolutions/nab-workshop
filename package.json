@@ -10,7 +10,6 @@
     "dev:users": "pnpm --filter=nab-workshop-users dev",
     "dev:reviews": "pnpm --filter=nab-workshop-reviews dev",
     "dev:mock": "pnpm --filter=nab-workshop-mock-server dev",
-    "dev:mock:fresh": "pnpm --filter=nab-workshop-mock-server dev:fresh",
     "router": "cd router && rover dev --supergraph-config supergraph.yaml --router-config router-config.yaml",
     "traffic": "pnpm --filter=nab-workshop-traffic start",
     "check:products": "pnpm --filter=start-with-typescript schema:check",

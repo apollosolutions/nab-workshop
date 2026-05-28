@@ -15,20 +15,37 @@ const URL = process.env.ROUTER_URL || "http://localhost:4000";
 const TARGET_RPS = Number(process.env.TARGET_RPS) || 10;
 const meanInterval = 1000 / TARGET_RPS;
 
+// Apollo client awareness headers. Each request randomly picks one of these
+// name+version pairs so GraphOS Studio shows traffic split by client.
+const clients = [
+  { name: "web", version: "2.4.0" },
+  { name: "web", version: "2.5.1" },
+  { name: "ios", version: "5.12.3" },
+  { name: "ios", version: "5.13.0" },
+];
+
 const counters = { sent: 0, ok: 0, gqlErr: 0, httpErr: 0, netErr: 0 };
 const byOp = new Map();
+const byClient = new Map();
 const errorsByOp = new Map(); // op name -> first error message seen
 const VERBOSE = process.env.VERBOSE === "1";
 
 async function fire() {
   counters.sent += 1;
   const op = operations[Math.floor(Math.random() * operations.length)];
+  const client = clients[Math.floor(Math.random() * clients.length)];
+  const clientKey = `${client.name}@${client.version}`;
   byOp.set(op.name, (byOp.get(op.name) || 0) + 1);
+  byClient.set(clientKey, (byClient.get(clientKey) || 0) + 1);
 
   try {
     const res = await fetch(URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "apollographql-client-name": client.name,
+        "apollographql-client-version": client.version,
+      },
       body: JSON.stringify({
         operationName: op.name,
         query: op.query,
@@ -90,6 +107,10 @@ process.on("SIGINT", () => {
     const err = errorsByOp.get(name);
     const marker = err ? "  ✗" : "  ✓";
     console.log(`${marker} ${name.padEnd(24)} ${String(count).padStart(4)}${err ? `   ${err.slice(0, 80)}` : ""}`);
+  }
+  console.log("\nPer client:");
+  for (const [name, count] of [...byClient.entries()].sort((a, b) => b[1] - a[1])) {
+    console.log(`    ${name.padEnd(24)} ${String(count).padStart(4)}`);
   }
   process.exit(0);
 });
