@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "apollo-federation": {
+      "source": "apollographql/skills",
+      "sourceType": "github",
+      "skillPath": "skills/apollo-federation/SKILL.md",
+      "computedHash": "705275f76ba758a02d8a34ab21e099fc253fc8d22dcb2a6f733bd144eb63d050"
+    },
+    "apollo-server": {
+      "source": "apollographql/skills",
+      "sourceType": "github",
+      "skillPath": "skills/apollo-server/SKILL.md",
+      "computedHash": "48e0099a2515d5c3b905f5c3891e8d5291a3466d194524b5a8b49e56e0689533"
+    },
+    "rover": {
+      "source": "apollographql/skills",
+      "sourceType": "github",
+      "skillPath": "skills/rover/SKILL.md",
+      "computedHash": "963d7bb7e4ff7e4a5f2a939cd77dd71d80d3e3d879a01945d573f06bb0f4908d"
+    }
+  }
+}

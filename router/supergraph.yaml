@@ -13,3 +13,7 @@ subgraphs:
     routing_url: http://localhost:4004
     schema:
       file: ../subgraphs/reviews/schema.graphql
+  cart:
+    routing_url: http://localhost:4005
+    schema:
+      file: ../subgraphs/cart/schema.graphql

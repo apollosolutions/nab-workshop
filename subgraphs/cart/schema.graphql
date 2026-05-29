@@ -1,0 +1,33 @@
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.7", import: ["@key"])
+
+type Cart @key(fields: "id") {
+  id: ID!
+  total: Float!
+  discountedTotal: Float!
+  totalProducts: Int!
+  totalQuantity: Int!
+  products: [CartItem!]!
+  user: User!
+}
+
+type CartItem {
+  quantity: Int!
+  total: Float!
+  discountedTotal: Float!
+  product: Product!
+}
+
+type User @key(fields: "id") {
+  id: ID!
+  carts: [Cart!]!
+}
+
+type Product @key(fields: "id", resolvable: false) {
+  id: ID!
+}
+
+type Query {
+  cart(id: ID!): Cart
+  carts: [Cart!]!
+}

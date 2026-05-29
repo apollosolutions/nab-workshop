@@ -2,3 +2,5 @@ packages:
   - 'subgraphs/*'
   - 'mock-server'
   - 'traffic'
+allowBuilds:
+  '@apollo/protobufjs': set this to true or false

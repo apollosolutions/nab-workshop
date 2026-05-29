@@ -1,3 +1,20 @@
+type Cart {
+  id: ID!
+  total: Float!
+  discountedTotal: Float!
+  totalProducts: Int!
+  totalQuantity: Int!
+  products: [CartItem!]!
+  user: User!
+}
+
+type CartItem {
+  quantity: Int!
+  total: Float!
+  discountedTotal: Float!
+  product: Product!
+}
+
 type Product {
   id: ID!
   title: String!
@@ -13,6 +30,8 @@ type Product {
 }
 
 type Query {
+  cart(id: ID!): Cart
+  carts: [Cart!]!
   product(id: ID!): Product
   products: [Product!]!
   user(id: ID!): User
@@ -30,7 +49,9 @@ type Review {
 
 type User {
   id: ID!
+  carts: [Cart!]!
   writtenReviews: [Review!]!
+  firstName: String!
   lastName: String!
   username: String!
   email: String!
